@@ -1,4 +1,16 @@
 ======================
+Cygwin notes
+======================
+1. Dependency is on Gpg instead of GPG2
+2. Changed command to gpg in the script.
+3. --batch does not work - there's no agent. So you need to enter GPG password everytime
+4. Cygwin does not have `tree` - download and compile from source from here http://lassauge.free.fr/cygwin/release/tree/
+5. You will need a few cygwin packages (other than the ones in the original list)
+    1. linux-utils (getopt)
+6. Windows has `clip` - but piping into it from cygwin breaks it. For now `-c` just prints it on console.
+if you need to copy it to clipboard, use `pass <path> | clip`
+
+======================
 Simple Password Store
 by Jason Donenfeld
    Jason@zx2c4.com
