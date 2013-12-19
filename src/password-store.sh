@@ -8,7 +8,7 @@ umask 077
 PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store}"
 ID="$PREFIX/.gpg-id"
 GIT_DIR="${PASSWORD_STORE_GIT:-$PREFIX}/.git"
-GPG_OPTS="--quiet --yes --batch"
+GPG_OPTS="--quiet --yes "
 
 export GIT_DIR
 export GIT_WORK_TREE="${PASSWORD_STORE_GIT:-$PREFIX}"
@@ -85,6 +85,8 @@ clip() {
 	# in shell. There must be a better way to deal with this, but because I'm a dolt,
 	# we're going with this for now.
 
+	echo -n "$1"
+    return 0
 	before="$(xclip -o -selection clipboard | base64)"
 	echo -n "$1" | xclip -selection clipboard
 	(
@@ -159,7 +161,7 @@ case "$command" in
 
 		if [[ $reencrypt -eq 1 ]]; then
 			find "$PREFIX" -iname '*.gpg' | while read passfile; do
-				gpg2 -d $GPG_OPTS "$passfile" | gpg2 -e -r "$gpg_id" -o "$passfile.new" $GPG_OPTS &&
+				gpg -d $GPG_OPTS "$passfile" | gpg -e -r "$gpg_id" -o "$passfile.new" $GPG_OPTS &&
 				mv -v "$passfile.new" "$passfile"
 			done
 			git_add_file "$PREFIX" "Reencrypted entire store using new GPG id $gpg_id."
@@ -221,9 +223,9 @@ case "$command" in
 				exit 1
 			fi
 			if [[ $clip -eq 0 ]]; then
-				exec gpg2 -d $GPG_OPTS "$passfile"
+				exec gpg -d $GPG_OPTS "$passfile"
 			else
-				pass="$(gpg2 -d $GPG_OPTS "$passfile" | head -n 1)"
+				pass="$(gpg -d $GPG_OPTS "$passfile" | head -n 1)"
 				[[ -n $pass ]] || exit 1
 				clip "$pass" "$path"
 			fi
@@ -258,7 +260,7 @@ case "$command" in
 		if [[ $multiline -eq 1 ]]; then
 			echo "Enter contents of $path and press Ctrl+D when finished:"
 			echo
-			gpg2 -e -r "$ID" -o "$passfile" $GPG_OPTS
+			gpg -e -r "$ID" -o "$passfile" $GPG_OPTS
 		elif [[ $noecho -eq 1 ]]; then
 			while true; do
 				read -r -p "Enter password for $path: " -s password
@@ -266,7 +268,7 @@ case "$command" in
 				read -r -p "Retype password for $path: " -s password_again
 				echo
 				if [[ $password == "$password_again" ]]; then
-					gpg2 -e -r "$ID" -o "$passfile" $GPG_OPTS <<<"$password"
+					gpg -e -r "$ID" -o "$passfile" $GPG_OPTS <<<"$password"
 					break
 				else
 					echo "Error: the entered passwords do not match."
@@ -274,7 +276,7 @@ case "$command" in
 			done
 		else
 			read -r -p "Enter password for $path: " -e password
-			gpg2 -e -r "$ID" -o "$passfile" $GPG_OPTS <<<"$password"
+			gpg -e -r "$ID" -o "$passfile" $GPG_OPTS <<<"$password"
 		fi
 		git_add_file "$passfile" "Added given password for $path to store."
 		;;
@@ -296,11 +298,11 @@ case "$command" in
 
 		action="Added"
 		if [[ -f $passfile ]]; then
-			gpg2 -d -o "$tmp_file" $GPG_OPTS "$passfile" || exit 1
+			gpg -d -o "$tmp_file" $GPG_OPTS "$passfile" || exit 1
 			action="Edited"
 		fi
 		${EDITOR:-vi} "$tmp_file"
-		while ! gpg2 -e -r "$ID" -o "$passfile" $GPG_OPTS "$tmp_file"; do
+		while ! gpg -e -r "$ID" -o "$passfile" $GPG_OPTS "$tmp_file"; do
 			echo "GPG encryption failed. Retrying."
 			sleep 1
 		done
@@ -338,7 +340,7 @@ case "$command" in
 
 		pass="$(pwgen -s $symbols $length 1)"
 		[[ -n $pass ]] || exit 1
-		gpg2 -e -r "$ID" -o "$passfile" $GPG_OPTS <<<"$pass"
+		gpg -e -r "$ID" -o "$passfile" $GPG_OPTS <<<"$pass"
 		git_add_file "$passfile" "Added generated password for $path to store."
 		
 		if [[ $clip -eq 0 ]]; then
