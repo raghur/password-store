@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2012 Juhamatti Niemelä <iiska@iki.fi>. All Rights Reserved.
@@ -11,13 +11,14 @@ from xml.etree import ElementTree
 
 def path_for(element, path=''):
     """ Generate path name from elements title and current path """
-    title = element.find('title').text
+    title = element.find('title').text.replace("/", "|")
     return '/'.join([path, title])
 
 def password_data(element):
     """ Return password data and additional info if available from
     password entry element. """
-    ret = element.find('password').text + "\n"
+    passwd = element.find('password').text
+    ret = passwd + "\n" if passwd else "\n"
     for field in ['username', 'url', 'comment']:
         fel = element.find(field)
         if fel.text is not None:

@@ -39,9 +39,9 @@ Usage:
         Show existing password and optionally put it on the clipboard.
         If put on the clipboard, it will be cleared in 45 seconds.
     $program insert [--echo,-e | --multiline,-m] [--force,-f] pass-name
-        Insert new password. Optionally, the console can be enabled echo
-        the password back. Or, optionally, it may be multiline. Prompt
-        before overwriting existing password unless forced.
+        Insert new password. Optionally, echo the password back to the console
+        during entry. Or, optionally, the entry may be multiline. Prompt before
+        overwriting existing password unless forced.
     $program edit pass-name
         Insert a new password or edit an existing password using ${EDITOR:-vi}.
     $program generate [--no-symbols,-n] [--clip,-c] [--force,-f] pass-name pass-length
@@ -75,7 +75,7 @@ git_add_file() {
 }
 yesno() {
 	read -p "$1 [y/N] " response
-	[[ $response == "y" || $response == "Y" ]] || exit 1
+	[[ $response == [yY] ]] || exit 1
 }
 #
 # BEGIN Platform definable
@@ -160,7 +160,7 @@ case "$command" in
 		git_add_file "$ID" "Set GPG id to $gpg_id."
 
 		if [[ $reencrypt -eq 1 ]]; then
-			find "$PREFIX" -iname '*.gpg' | while read passfile; do
+			find "$PREFIX/" -iname '*.gpg' | while read passfile; do
 				gpg -d $GPG_OPTS "$passfile" | gpg -e -r "$gpg_id" -o "$passfile.new" $GPG_OPTS &&
 				mv -v "$passfile.new" "$passfile"
 			done
@@ -209,19 +209,8 @@ case "$command" in
 		fi
 
 		path="$1"
-		if [[ -d $PREFIX/$path ]]; then
-			if [[ -z $path ]]; then
-				echo "Password Store"
-			else
-				echo "${path%\/}"
-			fi
-			tree --noreport "$PREFIX/$path" | tail -n +2 | sed 's/\(.*\)\.gpg$/\1/'
-		else
 			passfile="$PREFIX/$path.gpg"
-			if [[ ! -f $passfile ]]; then
-				echo "$path is not in the password store."
-				exit 1
-			fi
+		if [[ -f $passfile ]]; then
 			if [[ $clip -eq 0 ]]; then
 				exec gpg -d $GPG_OPTS "$passfile"
 			else
@@ -229,6 +218,16 @@ case "$command" in
 				[[ -n $pass ]] || exit 1
 				clip "$pass" "$path"
 			fi
+		elif [[ -d $PREFIX/$path ]]; then
+			if [[ -z $path ]]; then
+				echo "Password Store"
+			else
+				echo "${path%\/}"
+		fi
+			tree -l --noreport "$PREFIX/$path" | tail -n +2 | sed 's/\.gpg$//'
+		else
+			echo "$path is not in the password store."
+			exit 1
 		fi
 		;;
 	insert)
