@@ -84,30 +84,37 @@ clip() {
 	# This base64 business is a disgusting hack to deal with newline inconsistancies
 	# in shell. There must be a better way to deal with this, but because I'm a dolt,
 	# we're going with this for now.
+    if [[ "$(uname -a)"  == *Cygwin* ]]
+    then
+        before="$(getclip)"
+        now="$(echo -n "$1" | putclip)"
+        (
+            sleep 45
+            echo "$before" | putclip
+        ) & disown
+    else
+        before="$(xclip -o -selection clipboard | base64)"
+        echo -n "$1" | xclip -selection clipboard
+        (
+            sleep 45
+            now="$(xclip -o -selection clipboard | base64)"
+            if [[ $now != $(echo -n "$1" | base64) ]]; then
+                before="$now"
+            fi
 
-	echo -n "$1"
-    return 0
-	before="$(xclip -o -selection clipboard | base64)"
-	echo -n "$1" | xclip -selection clipboard
-	(
-		sleep 45
-		now="$(xclip -o -selection clipboard | base64)"
-		if [[ $now != $(echo -n "$1" | base64) ]]; then
-			before="$now"
-		fi
+            # It might be nice to programatically check to see if klipper exists,
+            # as well as checking for other common clipboard managers. But for now,
+            # this works fine -- if qdbus isn't there or if klipper isn't running,
+            # this essentially becomes a no-op.
+            #
+            # Clipboard managers frequently write their history out in plaintext,
+            # so we axe it here:
+            qdbus org.kde.klipper /klipper org.kde.klipper.klipper.clearClipboardHistory &>/dev/null
 
-		# It might be nice to programatically check to see if klipper exists,
-		# as well as checking for other common clipboard managers. But for now,
-		# this works fine -- if qdbus isn't there or if klipper isn't running,
-		# this essentially becomes a no-op.
-		#
-		# Clipboard managers frequently write their history out in plaintext,
-		# so we axe it here:
-		qdbus org.kde.klipper /klipper org.kde.klipper.klipper.clearClipboardHistory &>/dev/null
-
-		echo "$before" | base64 -d | xclip -selection clipboard
-	) & disown
-	echo "Copied $2 to clipboard. Will clear in 45 seconds."
+            echo "$before" | base64 -d | xclip -selection clipboard
+        ) & disown
+    fi
+    echo "Copied $2 to clipboard. Will clear in 45 seconds."
 }
 tmpdir() {
 	if [[ -d /dev/shm && -w /dev/shm && -x /dev/shm ]]; then
